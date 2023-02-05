@@ -66,8 +66,8 @@
 
 #     print(f'Performing schedule {schedule_id}.. {schedule_duration}.')
 
-#     request_link = "http://127.0.0.1:8000/api/data/agroscheduler/{}/?{}={}"
-#     response = requests.get(request_link.format(device, field, 1.0))
+# request_link = "http://127.0.0.1:8000/api/data/agroscheduler/{}/?{}={}"
+# response = requests.get(request_link.format(device, field, 1.0))
 
 #     # wait for the duration of the schedule
 #     duration = datetime.datetime.strptime(
@@ -81,9 +81,55 @@
 
 import requests
 from celery import shared_task
+from celery.result import AsyncResult
 import traceback
+from .models import Schedule, ScheduleTaskState
+from django.conf import settings
+from django.core.mail import send_mail
+import time
 
-from .models import Schedule
+
+@shared_task
+def perform_schedule_task(id, duration, device, field):
+
+    request_link = "http://127.0.0.1:8000/api/data/agroscheduler/{}/?{}={}"
+    response = requests.get(request_link.format(device, field, 1.0))
+    print("response: ", response.json())
+
+    time.sleep(duration)
+
+    request_link = "http://127.0.0.1:8000/api/data/agroscheduler/{}/?{}={}"
+    response = requests.get(request_link.format(device, field, 0.0))
+
+    print("response: ", response.json())
+
+    schedule = Schedule.objects.get(custom_id=id)
+    schedule.active = False
+    schedule.save()
+
+
+@shared_task
+def schedule_task():
+    schedules = Schedule.objects.filter(active=True)
+
+    for schedule in schedules:
+
+        task_id = schedule.custom_id
+
+        task_scheduled = ScheduleTaskState.objects.filter(
+            task_id=task_id).exists()
+        if task_scheduled:
+            # print("Task already scheduled.")
+            continue
+
+        duration_seconds = schedule.duration.total_seconds()
+
+        result = perform_schedule_task.apply_async(eta=schedule.datetime, args=[
+            schedule.custom_id, duration_seconds, schedule.device, schedule.field, ], task_id=task_id)
+
+        state = ScheduleTaskState.objects.create(
+            task_id=task_id, state=result.state)
+        state.save()
 
 
 @shared_task
@@ -97,7 +143,7 @@ def fetch_schedule_list_task():
     for item in schedule_list:
         id = item['id']
         if Schedule.objects.filter(custom_id=id).exists():
-            print('Schedule already exists in database.')
+            # print('Schedule already exists in database.')
             continue
 
         try:
@@ -112,7 +158,7 @@ def fetch_schedule_list_task():
                 device=item['device'],
             )
             schedule.save()
-            print('Schedule saved to database.')
+            # print('Schedule saved to database.')
 
         except Exception as e:
             print("An error occurred:")

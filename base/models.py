@@ -21,3 +21,10 @@ class Schedule(models.Model):
                                       minutes=int(self.duration.split(':')[1]),
                                       seconds=int(self.duration.split(':')[2]))
         super().save(*args, **kwargs)
+
+
+class ScheduleTaskState(models.Model):
+    task_id = models.CharField(max_length=255, unique=True)
+    state = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)

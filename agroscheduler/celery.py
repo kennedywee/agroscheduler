@@ -17,19 +17,15 @@ app = Celery('agroscheduler')
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
 
-# app.conf.beat_schedule = {
-#     'every-30-seconds': {
-#         'task': 'base.tasks.send_mail',
-#         'schedule': 15,
-#         'args': ('kennedy@gmail.com',)
-#     }
-# }
-
-
 app.conf.beat_schedule = {
+    # Periodic check schedule list and add to database
     'fetch-schedule-list': {
         'task': 'base.tasks.fetch_schedule_list_task',
         'schedule': 15,
+    },
+    'schedule-task': {
+        'task': 'base.tasks.schedule_task',
+        'schedule': 30,
     }
 }
 
