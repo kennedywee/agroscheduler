@@ -92,13 +92,13 @@ import time
 @shared_task
 def perform_schedule_task(id, duration, device, field):
 
-    request_link = "http://127.0.0.1:8000/api/data/agroscheduler/{}/?{}={}"
+    request_link = "https://kennedywee.pythonanywhere.com/api/data/agroscheduler/{}/?{}={}"
     response = requests.get(request_link.format(device, field, 1.0))
     print("response: ", response.json())
 
     time.sleep(duration)
 
-    request_link = "http://127.0.0.1:8000/api/data/agroscheduler/{}/?{}={}"
+    request_link = "https://kennedywee.pythonanywhere.com/api/data/agroscheduler/{}/?{}={}"
     response = requests.get(request_link.format(device, field, 0.0))
 
     print("response: ", response.json())
@@ -136,7 +136,7 @@ def schedule_task():
 def fetch_schedule_list_task():
     print('Fetching schedule list...')
     response = requests.get(
-        'http://127.0.0.1:8000/api/schedules/agroscheduler/')
+        'https://kennedywee.pythonanywhere.com/api/schedules/agroscheduler/')
 
     schedule_list = response.json()
 
